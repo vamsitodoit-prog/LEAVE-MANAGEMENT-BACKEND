@@ -1,0 +1,52 @@
+from rest_framework import serializers
+from datetime import date
+from .models import LeaveRequest, LeaveType
+
+
+class LeaveTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LeaveType
+        fields = '__all__'
+
+
+class LeaveRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LeaveRequest
+        fields = "__all__"
+        read_only_fields = [
+            'user',
+            'status',
+            'applied_at',
+            'updated_at'
+        ]
+
+    def validate(self, data):
+        from datetime import date
+
+        # 1. Start date must be before end date
+        if data['start_date'] > data['end_date']:
+            raise serializers.ValidationError(
+                "Start date cannot be after end date"
+            )
+
+        # 2. Leave cannot start in the past
+        if data['start_date'] < date.today():
+            raise serializers.ValidationError(
+                "Leave cannot start in the past"
+            )
+
+        # 3. Overlapping leave check
+        request = self.context.get('request')
+        if request and request.user:
+            overlap = LeaveRequest.objects.filter(
+                user=request.user,
+                start_date__lte=data['end_date'],
+                end_date__gte=data['start_date']
+            ).exists()
+
+            if overlap:
+                raise serializers.ValidationError(
+                    "Overlapping leave request exists"
+                )
+
+        return data
