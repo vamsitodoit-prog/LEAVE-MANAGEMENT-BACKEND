@@ -1,6 +1,9 @@
 from django.urls import path
-from .views import LeaveDiscussionListAPIView
+from .views import LeaveDiscussionListCreateAPIView
 
 urlpatterns = [
-    path('', LeaveDiscussionListAPIView.as_view()),
+    path(
+        'leaves/<int:leave_id>/discussions/',
+        LeaveDiscussionListCreateAPIView.as_view()
+    ),
 ]
