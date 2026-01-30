@@ -54,14 +54,18 @@ Authorization: Bearer <access_token>
 ```bash
 git clone <backend-repo-url>
 cd BACKEND
+
 2️⃣ Create Virtual Environment
 python -m venv venv
 venv\Scripts\activate    # Windows
+
 3️⃣ Install Dependencies
 pip install -r requirements.txt
+
 4️⃣ Environment Variables
 SECRET_KEY=your-django-secret-key
 DEBUG=True
+
 5️⃣ Firebase Admin Setup
 
 Download Firebase service account key
@@ -76,11 +80,14 @@ db.sqlite3
 venv/
 __pycache__/
 *.pyc
+
 6️⃣ Run Migrations
 python manage.py makemigrations
 python manage.py migrate
+
 7️⃣ Create Superuser
 python manage.py createsuperuser
+
 8️⃣ Start Server
 python manage.py runserver
 Backend runs at: http://127.0.0.1:8000
