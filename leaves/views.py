@@ -10,19 +10,30 @@ from django.shortcuts import get_object_or_404
 from .models import LeaveRequest
 from audits.models import AuditLog
 from accounts.utils import is_admin
-
+from notifications.models import Notification
 
 
 
 class LeaveRequestListCreateView(generics.ListCreateAPIView):
-    queryset = LeaveRequest.objects.all()
     serializer_class = LeaveRequestSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        # ADMIN / MANAGER → see all leaves
+        if is_admin(user):
+            return LeaveRequest.objects.all()
+
+        # EMPLOYEE → see only their own leaves
+        return LeaveRequest.objects.filter(user=user)
+
     def perform_create(self, serializer):
         leave = serializer.save(user=self.request.user)
         send_slack_notification(
             f"New leave request created by {leave.user}"
         )
+
 
 class ApproveLeaveAPI(APIView):
     permission_classes = [IsAuthenticated]
@@ -42,6 +53,12 @@ class ApproveLeaveAPI(APIView):
         leave.status = 'APPROVED'
         leave.save()
 
+        # 🔔 CREATE NOTIFICATION FOR EMPLOYEE
+        Notification.objects.create(
+            receiver=leave.user,
+            message=f"Your leave request (ID: {leave.id}) has been approved."
+        )
+
         AuditLog.objects.create(
             user=request.user,
             action=f"Approved leave request {leave.id}"
@@ -51,6 +68,7 @@ class ApproveLeaveAPI(APIView):
             {"message": "Leave approved successfully"},
             status=status.HTTP_200_OK
         )
+
 
 class RejectLeaveAPI(APIView):
     permission_classes = [IsAuthenticated]
@@ -70,6 +88,12 @@ class RejectLeaveAPI(APIView):
         leave.status = 'REJECTED'
         leave.save()
 
+        # 🔔 CREATE NOTIFICATION FOR EMPLOYEE
+        Notification.objects.create(
+            receiver=leave.user,
+            message=f"Your leave request (ID: {leave.id}) has been rejected."
+        )
+
         AuditLog.objects.create(
             user=request.user,
             action=f"Rejected leave request {leave.id}"
@@ -79,6 +103,7 @@ class RejectLeaveAPI(APIView):
             {"message": "Leave rejected successfully"},
             status=status.HTTP_200_OK
         )
+
 
 class UpdateLeaveAPI(APIView):
     permission_classes = [IsAuthenticated]
